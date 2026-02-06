@@ -136,104 +136,78 @@ export default function CommunityPage() {
 
   // Generate array of page numbers to display
   const getPageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    
-    if (totalPages <= maxPagesToShow) {
-      // Show all pages if there are few
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always include first page
-      pages.push(1);
-      
-      // Calculate range around current page
-      let startPage = Math.max(2, currentPage - 1);
-      let endPage = Math.min(totalPages - 1, currentPage + 1);
-      
-      // Adjust if at bounds
-      if (currentPage <= 2) {
-        endPage = 4;
-      } else if (currentPage >= totalPages - 1) {
-        startPage = totalPages - 3;
-      }
-      
-      // Add ellipsis before range if needed
-      if (startPage > 2) {
-        pages.push(-1); // -1 represents ellipsis
-      }
-      
-      // Add range
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-      
-      // Add ellipsis after range if needed
-      if (endPage < totalPages - 1) {
-        pages.push(-2); // -2 represents ellipsis
-      }
-      
-      // Always include last page
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  };
+  const maxVisible = 5;
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
 
-  return (
-    <div className="container mx-auto min-h-[calc(100vh-120px)] p-6 border rounded-md my-4 flex flex-col">
-      <Button
-        variant="outline"
-        onClick={handleBack}
-        className="mb-4 flex items-center gap-2 w-fit"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </Button>
+  const pages = [1];
+  let start = Math.max(2, currentPage - 1);
+  let end = Math.min(totalPages - 1, currentPage + 1);
 
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Community Videos</h1>
-          <p className="text-gray-500 mt-2">
-            Explore the latest videos created by the community
-          </p>
-        </div>
-        
-        <div className="relative md:min-w-[300px] lg:min-w-[500px]">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
-          </div>
-          <Input
-            type="text"
-            placeholder="Search videos..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="pl-10 w-full"
-          />
-          {searchQuery && (
-            <p className="absolute text-xs text-gray-500 mt-1">
-              {filteredVideos.length} {filteredVideos.length === 1 ? 'result' : 'results'}
-            </p>
-          )}
-        </div>
+  if (currentPage <= 2) end = 4;
+  if (currentPage >= totalPages - 1) start = totalPages - 3;
+
+  if (start > 2) pages.push("ellipsis-start");
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (end < totalPages - 1) pages.push("ellipsis-end");
+
+  pages.push(totalPages);
+  return pages;
+};
+
+return (
+  <div className="container mx-auto min-h-screen p-6 border rounded-lg my-4 flex flex-col bg-background">
+    <Button
+      variant="ghost"
+      onClick={handleBack}
+      className="mb-6 flex items-center gap-2 w-fit hover:bg-secondary"
+    >
+      <ArrowLeft size={18} />
+      <span>Back to Dashboard</span>
+    </Button>
+
+    <header className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+      <div className="space-y-1">
+        <h1 className="text-4xl font-extrabold tracking-tight">Community Showcase</h1>
+        <p className="text-muted-foreground text-lg">
+          Discover and explore the latest creations from our global community.
+        </p>
       </div>
 
+      <div className="relative w-full md:max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by title or creator..."
+          value={searchQuery}
+          onChange={handleSearch}
+          className="pl-10 h-11"
+        />
+        {searchQuery && (
+          <span className="absolute -bottom-6 left-0 text-xs font-medium text-primary">
+            Found {filteredVideos.length} {filteredVideos.length === 1 ? "video" : "videos"}
+          </span>
+        )}
+      </div>
+    </header>
+
+    <div className="flex-1">
       <VideoGrid
         videos={displayedVideos}
         loading={loading}
         error={error}
         onRetry={fetchVideos}
       />
+    </div>
 
-      {/* Spacer to push pagination to bottom */}
-      <div className="flex-grow" />
-      
-      {/* Pagination */}
-      {!loading && filteredVideos.length > 0 && totalPages > 1 && (
-        <Pagination className="pt-6">
+    {!loading && filteredVideos.length > 0 && totalPages > 1 && (
+      <footer className="mt-12 border-t pt-8">
+        <Pagination>
           <PaginationContent>
-            {/* Previous Page Button */}
             {currentPage > 1 && (
               <PaginationItem>
                 <PaginationPrevious
@@ -246,27 +220,25 @@ export default function CommunityPage() {
               </PaginationItem>
             )}
 
-            {/* Page Numbers */}
-            {getPageNumbers().map((pageNum, index) => (
-              <PaginationItem key={`page-${pageNum}-${index}`}>
-                {pageNum === -1 || pageNum === -2 ? (
+            {getPageNumbers().map((page, idx) => (
+              <PaginationItem key={`${page}-${idx}`}>
+                {typeof page === "string" ? (
                   <PaginationEllipsis />
                 ) : (
                   <PaginationLink
                     href="#"
-                    isActive={pageNum === currentPage}
+                    isActive={page === currentPage}
                     onClick={(e) => {
                       e.preventDefault();
-                      handlePageChange(pageNum);
+                      handlePageChange(page);
                     }}
                   >
-                    {pageNum}
+                    {page}
                   </PaginationLink>
                 )}
               </PaginationItem>
             ))}
 
-            {/* Next Page Button */}
             {currentPage < totalPages && (
               <PaginationItem>
                 <PaginationNext
@@ -280,7 +252,7 @@ export default function CommunityPage() {
             )}
           </PaginationContent>
         </Pagination>
-      )}
-    </div>
-  );
-}
+      </footer>
+    )}
+  </div>
+);
