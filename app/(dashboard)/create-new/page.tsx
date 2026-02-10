@@ -79,15 +79,20 @@ export default function CreateNew() {
     []
   );
 
-  const generateImages = async (scenes: VideoScene[]) => {
+  const generateImages = async (scenes: any) => {
+    if (!Array.isArray(scenes)) {
+      console.error('generateImages called with non-iterable scenes:', scenes);
+      return [];
+    }
+
     const images: string[] = [];
-    
+
     for (const scene of scenes) {
       try {
         const response = await axios.post('/api/generate-image', {
           prompt: scene.imagePrompt
         });
-        
+
         const imageUrl = response.data.imageUrl;
         console.log('Generated image URL:', imageUrl);
         images.push(imageUrl);
@@ -96,7 +101,7 @@ export default function CreateNew() {
         images.push('');
       }
     }
-    
+
     return images;
   };
 
@@ -134,7 +139,17 @@ export default function CreateNew() {
 
     try {
       const result = await axios.post('/api/get-video-script', { prompt });
+      if (result.data.error) {
+        // forward server-side error message if available
+        throw new Error(result.data.message || result.data.error);
+      }
       const scriptData = result.data.result;
+      console.log('Received script data:', scriptData);
+
+      if (!Array.isArray(scriptData)) {
+        throw new Error('Video script API returned unexpected format');
+      }
+
       setVideoScript(scriptData);
       
       // Generate images for each scene

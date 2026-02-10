@@ -49,7 +49,7 @@ export default function Footer() {
             </p>
             <div className="flex space-x-4">
               <Link
-                href="https://www.linkedin.com/in/ajayjainn/"
+                href="https://www.linkedin.com/in/divyansh-nahar-8872a6297/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
@@ -58,7 +58,7 @@ export default function Footer() {
                 <span className="sr-only">LinkedIn</span>
               </Link>
               <Link
-                href="https://github.com/ajayjainn/ReelsStack"
+                href="https://github.com/Divyanshnahar"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"

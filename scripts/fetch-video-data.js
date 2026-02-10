@@ -1,6 +1,11 @@
 // CommonJS script for fetching video data
 const fs = require('fs');
 const axios = require('axios');
+const dotenv = require('dotenv');
+
+// Load environment variables; prefer .env.local when running locally
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 // Get command line arguments
 const videoId = process.argv[2];

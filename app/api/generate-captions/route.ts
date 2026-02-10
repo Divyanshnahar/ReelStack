@@ -2,6 +2,10 @@ import { createClient } from "@deepgram/sdk";
 import { NextResponse } from "next/server";
 import dotenv from "dotenv";
 
+// load local env first (Next already loads variables at runtime, but explicit import
+// ensures serverless routes invoked outside of Next context still see the same values)
+dotenv.config({ path: '.env.local' });
+// fallback to default .env if needed
 dotenv.config();
 
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
