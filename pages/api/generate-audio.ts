@@ -1,6 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import cloudinary from '@/lib/cloudinary';
-import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
+import type { NextApiRequest, NextApiResponse } from "next";
+import cloudinary from "@/lib/cloudinary";
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 interface Scene {
   imagePrompt: string;
@@ -9,68 +9,99 @@ interface Scene {
 
 interface CloudinaryUploadResult {
   secure_url: string;
-  public_id: string;
-  resource_type: string;
-  format: string;
-  version: number;
-  type: string;
-  created_at: string;
-  bytes: number;
-  url: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      error: "Method not allowed",
+    });
   }
 
   try {
-    const { scenes, voice } = req.body as { scenes: Scene[]; voice: string };
+    const { scenes } = req.body as { scenes: Scene[] };
 
-    const combinedText = scenes.map(scene => scene.contentText).join('\n\n');
-
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-
-    const { audioStream } = await tts.toStream(combinedText);
-    const chunks: Buffer[] = [];
-
-    await new Promise<void>((resolve, reject) => {
-      audioStream.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
+    if (!scenes || !Array.isArray(scenes)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid scenes",
       });
-      audioStream.on('end', () => resolve());
-      audioStream.on('error', reject);
+    }
+
+    const combinedText = scenes
+      .map((scene) => scene.contentText)
+      .join("\n\n");
+
+    const elevenlabs = new ElevenLabsClient({
+      apiKey: process.env.ELEVENLABS_API_KEY,
     });
 
-    const audioBuffer = Buffer.concat(chunks);
-    const fileName = `audio_${Date.now()}.mp3`;
+    const voiceId = "JBFqnCBsd6RMkjVDRZzb";
 
-    const uploadResult = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'auto',
-          folder: 'reelsstack',
-          public_id: fileName.replace('.mp3', ''),
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result as CloudinaryUploadResult);
-        }
-      ).end(audioBuffer);
-    });
+    console.log("[TTS] Generating audio...");
+
+    const audioStream = await elevenlabs.textToSpeech.convert(
+      voiceId,
+      {
+        text: combinedText,
+        modelId: "eleven_multilingual_v2",
+        outputFormat: "mp3_44100_128",
+      }
+    );
+
+    // 🔥 Convert ReadableStream → Buffer
+    const reader = audioStream.getReader();
+    const chunks: Uint8Array[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    const audioBuffer = Buffer.concat(
+      chunks.map((chunk) => Buffer.from(chunk))
+    );
+
+    console.log("[TTS] Audio size:", audioBuffer.length, "bytes");
+
+    const fileName = `audio_${Date.now()}`;
+
+    const uploadResult = await new Promise<CloudinaryUploadResult>(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              resource_type: "auto",
+              folder: "reelsstack",
+              public_id: fileName,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result as CloudinaryUploadResult);
+            }
+          )
+          .end(audioBuffer);
+      }
+    );
 
     return res.status(200).json({
       success: true,
-      message: 'Audio file generated and uploaded successfully',
       audioUrl: uploadResult.secure_url,
     });
-
   } catch (error) {
-    console.error('Error generating audio:', error);
+    console.error("[AUDIO_ERROR]", error);
+
     return res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error:
+        error instanceof Error
+          ? error.message
+          : "Audio generation failed",
     });
   }
 }

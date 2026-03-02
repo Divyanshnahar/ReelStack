@@ -79,30 +79,29 @@ export default function CreateNew() {
     []
   );
 
+  // Generate a single image for the whole video. Use the first scene's
+  // imagePrompt (fallback to a joined prompt) and return a single-element
+  // array so downstream code continues to work with an array of images.
   const generateImages = async (scenes: any) => {
-    if (!Array.isArray(scenes)) {
-      console.error('generateImages called with non-iterable scenes:', scenes);
-      return [];
+    if (!Array.isArray(scenes) || scenes.length === 0) {
+      console.error('generateImages called with non-iterable or empty scenes:', scenes);
+      return [''];
     }
 
-    const images: string[] = [];
+    const primaryPrompt = scenes[0].imagePrompt || scenes.map((s: any) => s.imagePrompt).filter(Boolean).join(' ');
+    try {
+      const response = await axios.post('/api/generate-image', {
+        prompt: primaryPrompt
+      });
 
-    for (const scene of scenes) {
-      try {
-        const response = await axios.post('/api/generate-image', {
-          prompt: scene.imagePrompt
-        });
-
-        const imageUrl = response.data.imageUrl;
-        console.log('Generated image URL:', imageUrl);
-        images.push(imageUrl);
-      } catch (error) {
-        console.error('Error generating image:', error);
-        images.push('');
-      }
+      const imageUrl = response.data.imageUrl;
+      console.log('Generated single image URL:', imageUrl);
+      // return single image in array form to keep downstream compatibility
+      return [imageUrl];
+    } catch (error) {
+      console.error('Error generating image (single):', error);
+      return [''];
     }
-
-    return images;
   };
 
   const generateCaptions = async (audioUrl: string) => {
