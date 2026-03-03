@@ -82,7 +82,7 @@ export default function CreateNew() {
   // Generate a single image for the whole video. Use the first scene's
   // imagePrompt (fallback to a joined prompt) and return a single-element
   // array so downstream code continues to work with an array of images.
-  const generateImages = async (scenes: any) => {
+  const generateImages = async (scenes: unknown) => {
     if (!Array.isArray(scenes) || scenes.length === 0) {
       console.error('generateImages called with non-iterable or empty scenes:', scenes);
       return [''];

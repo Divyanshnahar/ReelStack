@@ -87,7 +87,7 @@ async function generateImageWithHF(prompt: string): Promise<string> {
     const blob = await client.textToImage({
       inputs: prompt,
       model: "stabilityai/stable-diffusion-xl-base-1.0",
-    });
+    }) as unknown as Blob;
 
     // blob is already a Blob, convert to base64
     const arrayBuffer = await blob.arrayBuffer();
