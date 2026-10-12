@@ -66,14 +66,39 @@ async function fetchVideoData() {
     throw new Error(`Could not fetch video data for ID: ${videoId} from database or API`);
   }
 
+  let parsedCaptions = videoData.captions;
+  while (typeof parsedCaptions === 'string') {
+    try {
+      parsedCaptions = JSON.parse(parsedCaptions);
+    } catch (e) {
+      break;
+    }
+  }
+  if (!Array.isArray(parsedCaptions)) {
+    parsedCaptions = [];
+  }
+
+  let parsedImageUrls = videoData.imageUrls;
+  while (typeof parsedImageUrls === 'string') {
+    try {
+      parsedImageUrls = JSON.parse(parsedImageUrls);
+    } catch (e) {
+      parsedImageUrls = [parsedImageUrls];
+      break;
+    }
+  }
+  if (!Array.isArray(parsedImageUrls)) {
+    parsedImageUrls = parsedImageUrls ? [parsedImageUrls] : [];
+  }
+
   const normalizedVideo = {
     id: videoData.id,
     videoId: videoData.id,
     title: videoData.title || "Untitled Video",
     description: videoData.description || null,
-    imageUrls: Array.isArray(videoData.imageUrls) ? videoData.imageUrls : [],
+    imageUrls: parsedImageUrls,
     audioUrl: videoData.audioUrl || "",
-    captions: Array.isArray(videoData.captions) ? videoData.captions : [],
+    captions: parsedCaptions,
     script: videoData.script || "",
     voice: videoData.voice || "",
     captionStyle: videoData.captionStyle || "default",
@@ -88,7 +113,7 @@ async function fetchVideoData() {
   };
 
   fs.writeFileSync('video-data.json', JSON.stringify(filePayload, null, 2));
-  console.log('Video data saved to video-data.json');
+  console.log(`Video data saved to video-data.json: ${parsedImageUrls.length} images, ${parsedCaptions.length} captions`);
   return filePayload;
 }
 

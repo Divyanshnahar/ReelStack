@@ -85,7 +85,10 @@ export async function GET(
     
     // First, get all render video workflow runs
     const allWorkflowRuns = runsResponse.data.workflow_runs.filter(
-      (run: GitHubWorkflowRun) => run.name === "Render Video" && 
+      (run: any) =>
+        (run.name?.includes("Render Video") ||
+         run.display_title?.includes("Render Video") ||
+         run.path?.includes("render-video.yml")) &&
         run.event === "workflow_dispatch"
     );
 
@@ -119,11 +122,11 @@ export async function GET(
       }
     }
 
-    // If no completed runs are found
+    // If no runs are found
     if (!videoRun) {
       return NextResponse.json(
         { 
-          message: "No completed render workflows found",
+          message: "No render workflows found",
           progressPercentage: 0
         }, 
         { status: 200 }
@@ -159,30 +162,11 @@ export async function GET(
     // Update the video in the database with the downloadUrl
     if (downloadUrl) {
       try {
-        // Get user's email from Clerk
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
-        
-        if (!userEmail) {
-          throw new Error("User email not found");
-        }
-        
-        // Find user in our database by email
-        const dbUser = await db.select().from(Users).where(eq(Users.email, userEmail));
-        
-        if (dbUser && dbUser.length > 0) {
-          // Update the video
-          await db.update(Videos)
-            .set({ downloadUrl })
-            .where(
-              and(
-                eq(Videos.id, videoId),
-                eq(Videos.createdBy, dbUser[0].id)
-              )
-            );
-        }
+        await db.update(Videos)
+          .set({ downloadUrl })
+          .where(eq(Videos.id, videoId));
       } catch (error) {
-        console.error("Error updating video with downloadUrl:", error);
+        console.error("Error updating video with downloadUrl in DB:", error);
       }
     }
 

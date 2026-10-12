@@ -12,9 +12,20 @@ export const RemotionRoot: React.FC = () => {
     return null;
   }
 
-  const captions = videoData?.captions || [];
+  let captions = videoData?.captions || [];
+  while (typeof captions === "string") {
+    try {
+      captions = JSON.parse(captions);
+    } catch {
+      break;
+    }
+  }
+  if (!Array.isArray(captions)) {
+    captions = [];
+  }
+
   const lastCaptionEnd = captions.length > 0 ? captions[captions.length - 1].end : 10;
-  const durationInFrames = Number((lastCaptionEnd * 30).toFixed(0)) + 10;
+  const durationInFrames = Math.max(30, Number((lastCaptionEnd * 30).toFixed(0)) + 15);
 
   return (
     <>
