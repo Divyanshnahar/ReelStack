@@ -1,11 +1,13 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Play, Sparkles, Users, Video } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Users, Video, Film, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { TextEffect } from "@/components/ui/text-effect";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { cn } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
+import { SignOutButton } from "@clerk/nextjs";
 
 const features = [
   {
@@ -54,7 +56,9 @@ const transitionVariants = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+
   return (
     <main className="flex-1">
       {/* Hero Section */}
@@ -98,24 +102,85 @@ export default function Home() {
               }}
               className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 px-4"
             >
-              <Button
-                size="lg"
-                className="w-full sm:w-auto text-base rounded-full"
-                asChild
-              >
-                <Link href="/sign-up">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto text-base rounded-full"
-                asChild
-              >
-                <Link href="/community">View Examples</Link>
-              </Button>
+              {userId ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto text-base rounded-full shadow-lg"
+                    asChild
+                  >
+                    <Link href="/dashboard">
+                      <Film className="mr-2 h-5 w-5" />
+                      My Videos
+                    </Link>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto text-base rounded-full"
+                    asChild
+                  >
+                    <Link href="/create-new">
+                      <Video className="mr-2 h-5 w-5" />
+                      Create Video
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    className="w-full sm:w-auto text-base rounded-full"
+                    asChild
+                  >
+                    <Link href="/community">
+                      <Users className="mr-2 h-5 w-5" />
+                      Community
+                    </Link>
+                  </Button>
+                  <SignOutButton redirectUrl="/">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full sm:w-auto text-base rounded-full text-muted-foreground hover:text-foreground"
+                    >
+                      <LogOut className="mr-2 h-5 w-5" />
+                      Logout
+                    </Button>
+                  </SignOutButton>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto text-base rounded-full shadow-lg"
+                    asChild
+                  >
+                    <Link href="/sign-up">
+                      Get Started Free
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto text-base rounded-full"
+                    asChild
+                  >
+                    <Link href="/sign-in">
+                      <LogIn className="mr-2 h-5 w-5" />
+                      Login
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    className="w-full sm:w-auto text-base rounded-full"
+                    asChild
+                  >
+                    <Link href="/community">View Examples</Link>
+                  </Button>
+                </>
+              )}
             </AnimatedGroup>
           </div>
 

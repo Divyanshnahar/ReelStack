@@ -42,17 +42,17 @@ export default function Composition({
   video: Video; 
   setDurationInFrames?: (duration: number) => void 
 }) {
-  let rawCaptions = video.captions || [];
+  let rawCaptions: unknown = video.captions || [];
   while (typeof rawCaptions === 'string') {
     try { rawCaptions = JSON.parse(rawCaptions); } catch { break; }
   }
   const captions = Array.isArray(rawCaptions) ? rawCaptions : [];
 
-  let rawImages = video.imageUrls || [];
+  let rawImages: unknown = video.imageUrls || [];
   while (typeof rawImages === 'string') {
     try { rawImages = JSON.parse(rawImages); } catch { rawImages = [rawImages]; break; }
   }
-  const imagesList = Array.isArray(rawImages) ? rawImages : (rawImages ? [rawImages] : []);
+  const imagesList: string[] = Array.isArray(rawImages) ? rawImages : (rawImages ? [String(rawImages)] : []);
 
   const frame = useCurrentFrame();
   const { fps, durationInFrames: configDurationInFrames } = useVideoConfig();
