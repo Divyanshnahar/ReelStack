@@ -4,10 +4,10 @@ import VideoComposition from "./composition";
 import { Video } from "@/components/video/video-player";
 
 export const RemotionRoot: React.FC = () => {
-  const propsFromInput = getInputProps<{ video?: Video }>();
-  const videoData = propsFromInput?.video;
+  const propsFromInput = getInputProps<{ video?: Video } & Partial<Video>>();
+  const videoData = (propsFromInput?.video || propsFromInput) as Video | undefined;
 
-  if (!videoData) {
+  if (!videoData || (!videoData.id && !videoData.audioUrl && (!videoData.imageUrls || videoData.imageUrls.length === 0))) {
     console.error("No video data passed via --props. Composition will not render.");
     return null;
   }

@@ -68,12 +68,16 @@ export async function GET(
       );
     }
 
+    const authHeader = githubToken.startsWith("Bearer ") || githubToken.startsWith("token ")
+      ? githubToken
+      : `Bearer ${githubToken}`;
+
     // First try to list all runs for the repository
     const runsResponse = await axios.get<GitHubRunsResponse>(
       `https://api.github.com/repos/${githubRepo}/actions/runs`,
       {
         headers: {
-          Authorization: `token ${githubToken}`,
+          Authorization: authHeader,
           Accept: 'application/vnd.github.v3+json',
         },
       }
@@ -100,7 +104,7 @@ export async function GET(
         const runDetailsUrl = run.url;
         const runDetails = await axios.get<GitHubWorkflowRunDetails>(runDetailsUrl, {
           headers: {
-            Authorization: `token ${githubToken}`,
+            Authorization: authHeader,
             Accept: 'application/vnd.github.v3+json',
           },
         });
@@ -157,7 +161,7 @@ export async function GET(
         { 
           message: "No completed render workflows found",
           progressPercentage: 0
-        },
+        }, 
         { status: 200 }
       );
     }
@@ -167,7 +171,7 @@ export async function GET(
       `https://api.github.com/repos/${githubRepo}/actions/runs/${videoRun.id}/artifacts`,
       {
         headers: {
-          Authorization: `token ${githubToken}`,
+          Authorization: authHeader,
           Accept: 'application/vnd.github.v3+json',
         },
       }

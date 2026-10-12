@@ -56,11 +56,15 @@ export async function GET(
     }
 
     try {
+      const authHeader = githubToken.startsWith("Bearer ") || githubToken.startsWith("token ")
+        ? githubToken
+        : `Bearer ${githubToken}`;
+
       // Create a simple redirect to the GitHub download URL with Authorization
       // This won't work directly in the browser, so instead we'll proxy the request
       const response = await fetch(video.downloadUrl, {
         headers: {
-          'Authorization': `token ${githubToken}`,
+          'Authorization': authHeader,
         },
       });
 
