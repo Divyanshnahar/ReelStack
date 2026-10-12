@@ -1,4 +1,5 @@
 name: Render Video
+run-name: Render Video (${{ inputs.videoId }})
 
 on:
   workflow_dispatch:

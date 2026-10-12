@@ -45,7 +45,7 @@ export default function Composition({
   const captions = video.captions;
   const imagesList = video.imageUrls;
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames: configDurationInFrames } = useVideoConfig();
 
   // Debug log for audio url
   useEffect(() => {
@@ -73,14 +73,14 @@ export default function Composition({
   const audioSource = getAudioSource();
 
   const getDurationInFrames = useCallback(() => {
-    if (!captions || captions.length === 0) {
-      return 0;
+    if (captions && captions.length > 0) {
+      const captionDuration = Math.ceil(captions[captions.length - 1].end * fps);
+      if (captionDuration > 0) return captionDuration;
     }
-    const totalDuration = captions[captions.length - 1].end * fps;
-    return totalDuration;
-  }, [captions, fps]);
+    return configDurationInFrames > 0 ? configDurationInFrames : 300;
+  }, [captions, fps, configDurationInFrames]);
 
-  const durationInFrames = getDurationInFrames();
+  const durationInFrames = Math.max(30, getDurationInFrames());
   
   // Use an effect to update the parent component's state
   useEffect(() => {
@@ -278,17 +278,21 @@ export default function Composition({
   return (
     <AbsoluteFill>
       <style dangerouslySetInnerHTML={fontStyles} />
-      {imagesList.map((image: string, index: number) => {
-        const startTime = (index * durationInFrames) / imagesList.length;
-        const scale = (index: number) =>
+      {imagesList && imagesList.length > 0 && imagesList.map((image: string, index: number) => {
+        const numImages = imagesList.length;
+        const imageDuration = Math.max(1, Math.floor(durationInFrames / numImages));
+        const startTime = index * imageDuration;
+        const halfDuration = Math.max(0.5, imageDuration / 2);
+
+        const scale = (idx: number) =>
           interpolate(
             frame,
             [
               startTime,
-              startTime + durationInFrames / 2,
-              startTime + durationInFrames,
+              startTime + halfDuration,
+              startTime + imageDuration,
             ],
-            index % 2 == 0 ? [1, 1.8, 1] : [1.8, 1, 1.8],
+            idx % 2 === 0 ? [1, 1.15, 1] : [1.15, 1, 1.15],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           );
 
@@ -296,7 +300,7 @@ export default function Composition({
           <Sequence
             key={index}
             from={startTime}
-            durationInFrames={durationInFrames}
+            durationInFrames={imageDuration + 2}
           >
             <AbsoluteFill>
               <Img

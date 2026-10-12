@@ -94,61 +94,25 @@ export async function GET(
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    // Try to find a run specifically for this videoId by checking inputs
-    let videoRun: GitHubWorkflowRun | null = null;
-    let progressPercentage = 0;
-    
-    for (const run of allWorkflowRuns) {
-      try {
-        // Make a request to get the workflow run details which includes inputs
-        const runDetailsUrl = run.url;
-        const runDetails = await axios.get<GitHubWorkflowRunDetails>(runDetailsUrl, {
-          headers: {
-            Authorization: authHeader,
-            Accept: 'application/vnd.github.v3+json',
-          },
-        });
-        
-        // Check if this run was for our specific videoId
-        const workflowRun = runDetails.data.workflow_run;
-        if (workflowRun.inputs && workflowRun.inputs.videoId === videoId) {
-          videoRun = workflowRun;
-          
-          // Calculate progress percentage based on time elapsed since the workflow started
-          // This is a time-based estimation since we can't directly get render progress from GitHub
-          if (workflowRun.status === "in_progress" || workflowRun.status === "queued") {
-            const startTime = new Date(workflowRun.created_at).getTime();
-            const currentTime = new Date().getTime();
-            
-            // Assume the workflow takes around 3 minutes (180000ms) to complete
-            // This is an estimation and can be adjusted based on actual rendering times
-            const estimatedTotalTime = 180000;
-            const elapsedTime = currentTime - startTime;
-            
-            // Calculate percentage with a maximum of 95% (to avoid showing 100% before it's actually done)
-            progressPercentage = Math.min(Math.floor((elapsedTime / estimatedTotalTime) * 100), 95);
-          } else if (workflowRun.status === "completed" && workflowRun.conclusion === "success") {
-            progressPercentage = 100;
-          }
-          
-          break;
-        }
-      } catch (error) {
-        console.error("Error fetching workflow run details:", error);
-        continue;
-      }
-    }
+    // Try to find a run specifically for this videoId by checking display_title, name, or fall back to most recent
+    let videoRun: GitHubWorkflowRun | null = 
+      allWorkflowRuns.find((run: any) => 
+        (run.display_title && run.display_title.includes(videoId)) ||
+        (run.name && run.name.includes(videoId))
+      ) || (allWorkflowRuns.length > 0 ? allWorkflowRuns[0] : null);
 
-    // If we didn't find a specific run for this videoId, just use the most recent one
-    if (!videoRun && allWorkflowRuns.length > 0) {
-      videoRun = allWorkflowRuns[0];
-      
-      // Set a default progress for this case
-      if (videoRun.status === "in_progress") {
+    let progressPercentage = 0;
+
+    if (videoRun) {
+      if (videoRun.status === "in_progress" || videoRun.status === "queued") {
         const startTime = new Date(videoRun.created_at).getTime();
         const currentTime = new Date().getTime();
+        
+        // Assume the workflow takes around 3 minutes (180000ms) to complete
         const estimatedTotalTime = 180000;
         const elapsedTime = currentTime - startTime;
+        
+        // Calculate percentage with a maximum of 95% (to avoid showing 100% before it's actually done)
         progressPercentage = Math.min(Math.floor((elapsedTime / estimatedTotalTime) * 100), 95);
       } else if (videoRun.status === "completed" && videoRun.conclusion === "success") {
         progressPercentage = 100;
