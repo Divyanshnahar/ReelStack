@@ -126,11 +126,16 @@ export default function VideoPage() {
       return;
     }
 
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isCancelled = false;
+
     const checkWorkflowStatus = async () => {
       try {
         const response = await axios.get(
           `/api/videos/${videoId}/workflow-status`
         );
+
+        if (isCancelled) return;
 
         if (
           response.data.status === "in_progress" ||
@@ -141,8 +146,8 @@ export default function VideoPage() {
           // Set the render progress percentage from the API response
           setRenderProgress(response.data.progressPercentage || 0);
 
-          // Check again after 10 seconds (more frequent updates for better UX)
-          setTimeout(checkWorkflowStatus, 10000);
+          // Check again after 10 seconds
+          timeoutId = setTimeout(checkWorkflowStatus, 10000);
         } else if (response.data.downloadUrl) {
           setIsWorkflowInProgress(false);
           setWorkflowStatus("completed");
@@ -155,18 +160,24 @@ export default function VideoPage() {
         } else {
           setIsWorkflowInProgress(false);
           setWorkflowStatus(response.data.status || null);
-          // If the workflow is completed but failed, set progress to 0
           setRenderProgress(response.data.progressPercentage || 0);
         }
       } catch (error) {
         console.error("Error checking workflow status:", error);
-        setIsWorkflowInProgress(false);
+        if (!isCancelled) {
+          setIsWorkflowInProgress(false);
+        }
       }
     };
 
     // Check workflow status when component mounts
     checkWorkflowStatus();
-  }, [videoId, video]);
+
+    return () => {
+      isCancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [videoId, video?.isOwner, video?.status, video?.downloadUrl]);
 
   const formatScript = (scriptStr: string) => {
     try {
